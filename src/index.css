@@ -13,8 +13,8 @@
   .btn-teal { @apply btn bg-brand-600 text-white hover:bg-brand-700; }
   .btn-ghost { @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50; }
   .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
-  .input { @apply w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm placeholder:text-slate-400 focus:border-brand-600 focus:outline-none; }
-  .th { @apply whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500; }
+  .input { @apply w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm placeholder:text-black focus:border-brand-600 focus:outline-none; }
+  .th { @apply whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-black; }
   .td { @apply px-3 py-2.5 text-sm; }
   .pill { @apply inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400; }
   .pill-active { @apply border-navy-900 bg-navy-900 text-white hover:border-navy-800 hover:bg-navy-800; }

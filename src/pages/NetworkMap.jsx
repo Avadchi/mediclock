@@ -53,19 +53,19 @@ export default function NetworkMap() {
 
   return (
     <div className="space-y-4">
-      <div><h1 className="text-xl font-semibold text-navy-900">Clinic network map</h1><p className="text-sm text-slate-500">Fictional clinic locations around Mumbai. Click a marker for its inventory summary. Dashed lines show suggested transfers.</p></div>
-      <div className="flex flex-wrap gap-3 text-xs text-slate-600">
+      <div><h1 className="text-xl font-semibold text-navy-900">Clinic network map</h1><p className="text-sm text-black">Fictional clinic locations around Mumbai. Click a marker for its inventory summary. Dashed lines show suggested transfers.</p></div>
+      <div className="flex flex-wrap gap-3 text-xs text-black">
         {[['green', 'Stock safe'], ['amber', 'Surplus or near-expiry stock'], ['red', 'Shortage']].map(([k, l]) => <span key={k} className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: COLORS[k] }} />{l}</span>)}
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="card overflow-hidden lg:col-span-2"><div ref={el} className="h-[22rem] w-full sm:h-[30rem]" role="application" aria-label="Map of clinics" /></div>
         <Section title={c.name}>
           <div className="space-y-3 p-4 text-sm">
-            <div className="flex flex-wrap gap-1.5"><Badge tone={i.status === 'red' ? 'Critical' : i.status === 'amber' ? 'Warning' : 'Normal'}>{i.status === 'red' ? 'Shortage' : i.status === 'amber' ? 'Attention' : 'Stable'}</Badge><span className="text-xs text-slate-500">{c.area}</span></div>
-            <table className="w-full text-xs"><thead><tr className="text-left text-slate-500"><th className="py-1 font-medium">Medicine</th><th className="font-medium">Stock</th><th className="font-medium">Surplus</th><th className="font-medium">Short</th></tr></thead>
+            <div className="flex flex-wrap gap-1.5"><Badge tone={i.status === 'red' ? 'Critical' : i.status === 'amber' ? 'Warning' : 'Normal'}>{i.status === 'red' ? 'Shortage' : i.status === 'amber' ? 'Attention' : 'Stable'}</Badge><span className="text-xs text-black">{c.area}</span></div>
+            <table className="w-full text-xs"><thead><tr className="text-left text-black"><th className="py-1 font-medium">Medicine</th><th className="font-medium">Stock</th><th className="font-medium">Surplus</th><th className="font-medium">Short</th></tr></thead>
               <tbody className="divide-y">{i.s.map((x) => <tr key={x.medicineId}><td className="py-1">{x.name}</td><td className="tabular-nums">{x.stock}</td><td className="tabular-nums text-amber-700">{x.surplus || '–'}</td><td className="tabular-nums font-medium text-red-600">{x.shortage || '–'}</td></tr>)}</tbody></table>
-            <div><div className="text-xs font-semibold text-navy-900">Can send</div>{sends.length === 0 ? <div className="text-xs text-slate-500">No suggested transfers out.</div> : sends.map((r) => <div key={r.id} className="text-xs">{r.qty} {r.unit} {r.medicineName} → {cname(r.toClinic)}</div>)}</div>
-            <div><div className="text-xs font-semibold text-navy-900">Needs</div>{gets.length === 0 ? <div className="text-xs text-slate-500">No suggested transfers in.</div> : gets.map((r) => <div key={r.id} className="text-xs">{r.qty} {r.unit} {r.medicineName} ← {cname(r.fromClinic)}</div>)}</div>
+            <div><div className="text-xs font-semibold text-navy-900">Can send</div>{sends.length === 0 ? <div className="text-xs text-black">No suggested transfers out.</div> : sends.map((r) => <div key={r.id} className="text-xs">{r.qty} {r.unit} {r.medicineName} → {cname(r.toClinic)}</div>)}</div>
+            <div><div className="text-xs font-semibold text-navy-900">Needs</div>{gets.length === 0 ? <div className="text-xs text-black">No suggested transfers in.</div> : gets.map((r) => <div key={r.id} className="text-xs">{r.qty} {r.unit} {r.medicineName} ← {cname(r.fromClinic)}</div>)}</div>
           </div>
         </Section>
       </div>
