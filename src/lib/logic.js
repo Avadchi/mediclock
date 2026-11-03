@@ -13,6 +13,8 @@ export const ACTIVE = [
   'Dispatched',
 ];
 export const STATUSES = ['Suggested', ...ACTIVE, 'Completed', 'Rejected', 'Cancelled'];
+export const PURCHASE_ACTIVE = ['Reorder Required', 'Pending Approval', 'Approved', 'Order Placed', 'Partially Received'];
+export const PURCHASE_STATUSES = [...PURCHASE_ACTIVE, 'Received', 'Rejected', 'Cancelled'];
 
 /* ---------- dates ---------- */
 export const toISO = (d) => d.toISOString().slice(0, 10);
@@ -206,6 +208,7 @@ export function addBatch(state, input, user, today) {
   if (!canEditInventory(user, input.clinicId)) return fail('You can only add stock for your own clinic.');
   const s = clone(state); const b = { id: 'B-' + String(s.seq.batch++).padStart(4, '0'), ...normBatch(input) };
   s.batches.push(b); log(s, 'inventory', `${user.name} added batch ${b.batchNo} of ${b.name} (${b.qty} ${b.unit}) at ${cname(s, b.clinicId)}`);
+  evaluateReorders(s, today, [{ clinicId: b.clinicId, medicineId: b.medicineId }]);
   return ok(s, { batch: b });
 }
 export function editBatch(state, id, input, user, today) {
@@ -215,6 +218,7 @@ export function editBatch(state, id, input, user, today) {
   const errs = validateBatch(state, merged, today, { isEdit: true, id }); if (Object.keys(errs).length) return fail(Object.values(errs)[0]);
   const s = clone(state); Object.assign(s.batches.find((b) => b.id === id), normBatch(merged));
   log(s, 'inventory', `${user.name} edited batch ${old.batchNo} of ${old.name} at ${cname(s, old.clinicId)}`);
+  evaluateReorders(s, today, [{ clinicId: old.clinicId, medicineId: old.medicineId }]);
   return ok(s);
 }
 export function adjustQuantity(state, id, newQty, user) {
@@ -224,6 +228,7 @@ export function adjustQuantity(state, id, newQty, user) {
   const r = reservedQty(state.transfers, id); if (q < r) return fail(`Quantity cannot be below ${r}, which is reserved for active transfers.`);
   const s = clone(state); s.batches.find((x) => x.id === id).qty = q;
   log(s, 'inventory', `${user.name} set ${b.name} batch ${b.batchNo} quantity ${b.qty} -> ${q} at ${cname(s, b.clinicId)}`);
+  evaluateReorders(s, todayISO(), [{ clinicId: b.clinicId, medicineId: b.medicineId }]);
   return ok(s);
 }
 export function recordConsumption(state, id, amount, user) {
@@ -234,6 +239,187 @@ export function recordConsumption(state, id, amount, user) {
   if (a > free) return fail(`Only ${free} ${b.unit} can be consumed. The rest is reserved for active transfers or not in stock.`);
   const s = clone(state); s.batches.find((x) => x.id === id).qty -= a;
   log(s, 'inventory', `${user.name} recorded consumption of ${a} ${b.unit} of ${b.name} (batch ${b.batchNo}) at ${cname(s, b.clinicId)}`);
+  evaluateReorders(s, todayISO(), [{ clinicId: b.clinicId, medicineId: b.medicineId }]);
+  return ok(s);
+}
+
+/* ---------- purchase reordering ---------- */
+export function migrateStateData(data) {
+  if (!data || data.version !== 1 || !Array.isArray(data.batches)) return null;
+  const seq = { transfer: 1, batch: data.batches.length + 1, activity: 1, clinic: 1, user: 1, purchase: 1, notification: 1, ...(data.seq || {}) };
+  for (const key of Object.keys(seq)) if (!Number.isInteger(seq[key]) || seq[key] < 1) seq[key] = 1;
+  return {
+    ...data,
+    clinics: Array.isArray(data.clinics) ? data.clinics : [],
+    users: Array.isArray(data.users) ? data.users : [],
+    transfers: Array.isArray(data.transfers) ? data.transfers : [],
+    audit: Array.isArray(data.audit) ? data.audit : [],
+    activity: Array.isArray(data.activity) ? data.activity : [],
+    reorderSettings: Array.isArray(data.reorderSettings) ? data.reorderSettings : [],
+    purchases: Array.isArray(data.purchases) ? data.purchases : [],
+    notifications: Array.isArray(data.notifications) ? data.notifications : [],
+    seq,
+  };
+}
+
+const notifyPurchase = (s, purchase, text, kind) => {
+  if (!Array.isArray(s.notifications)) s.notifications = [];
+  if (!s.seq) s.seq = {};
+  if (!Number.isInteger(s.seq.notification)) s.seq.notification = 1;
+  s.notifications.unshift({
+    id: 'NT-' + String(s.seq.notification++).padStart(4, '0'),
+    type: 'purchase', kind, purchaseId: purchase?.id || null, clinicId: purchase?.clinicId || null,
+    text, createdAt: new Date().toISOString(), read: false,
+  });
+  if (s.notifications.length > 200) s.notifications.length = 200;
+};
+
+const purchaseOutstanding = (p) => Math.max(0, p.quantity - (p.receivedQty || 0));
+export const availableReorderStock = (state, clinicId, medicineId, today) => {
+  const stock = state.batches.filter((b) => b.clinicId === clinicId && b.medicineId === medicineId && daysLeft(b.expiry, today) >= 0)
+    .reduce((n, b) => n + b.qty, 0);
+  const outgoing = state.transfers.filter((t) => t.fromClinic === clinicId && t.medicineId === medicineId && ACTIVE.includes(t.status))
+    .reduce((n, t) => n + t.qty, 0);
+  const transfers = state.transfers.filter((t) => t.toClinic === clinicId && t.medicineId === medicineId && ACTIVE.includes(t.status))
+    .reduce((n, t) => n + t.qty, 0);
+  const purchases = (state.purchases || []).filter((p) => p.clinicId === clinicId && p.medicineId === medicineId && PURCHASE_ACTIVE.includes(p.status))
+    .reduce((n, p) => n + purchaseOutstanding(p), 0);
+  return { stock, outgoingTransfers: outgoing, incomingTransfers: transfers, incomingPurchases: purchases, available: Math.max(0, stock - outgoing) + transfers + purchases };
+};
+
+export function evaluateReorders(state, today, targets) {
+  const selected = targets ? new Set(targets.map((x) => `${x.clinicId}:${x.medicineId}`)) : null;
+  for (const setting of state.reorderSettings || []) {
+    if (!setting.active || (selected && !selected.has(`${setting.clinicId}:${setting.medicineId}`))) continue;
+    const stock = availableReorderStock(state, setting.clinicId, setting.medicineId, today);
+    if (stock.available > setting.threshold) { delete setting.suppressedAtAvailable; continue; }
+    if (setting.suppressedAtAvailable === stock.available) continue;
+    if ((state.purchases || []).some((p) => p.clinicId === setting.clinicId && p.medicineId === setting.medicineId && PURCHASE_ACTIVE.includes(p.status))) continue;
+    if (!state.seq) state.seq = {};
+    if (!Number.isInteger(state.seq.purchase)) state.seq.purchase = 1;
+    const id = 'PO-' + String(state.seq.purchase++).padStart(4, '0');
+    const medicine = state.batches.find((b) => b.clinicId === setting.clinicId && b.medicineId === setting.medicineId);
+    const p = {
+      id, clinicId: setting.clinicId, medicineId: setting.medicineId,
+      medicineName: setting.medicineName || medicine?.name || setting.medicineId, unit: setting.unit || medicine?.unit || 'unit',
+      quantity: setting.reorderQuantity, unitPrice: setting.unitPrice, estimatedCost: setting.reorderQuantity * setting.unitPrice,
+      supplier: setting.supplier, supplierContact: setting.supplierContact || '',
+      requestedAt: new Date().toISOString(), status: 'Pending Approval', receivedQty: 0, actualExpense: 0,
+      history: [{ status: 'Reorder Required', at: new Date().toISOString(), by: 'MediClock', note: `Available stock ${stock.available} reached threshold ${setting.threshold}.` },
+        { status: 'Pending Approval', at: new Date().toISOString(), by: 'MediClock', note: 'Automatic purchase request generated.' }],
+      deliveries: [],
+    };
+    state.purchases.unshift(p);
+    notifyPurchase(state, p, `${p.medicineName} reached its reorder threshold at ${cname(state, p.clinicId)}.`, 'threshold');
+    notifyPurchase(state, p, `${p.id}: purchase request for ${p.quantity} ${p.unit} ${p.medicineName} requires approval.`, 'request');
+    log(state, 'purchase', `MediClock generated ${p.id}: ${p.quantity} ${p.unit} ${p.medicineName} at ${cname(state, p.clinicId)} (estimated ${p.estimatedCost}).`);
+  }
+  return state;
+}
+
+export function configureReorder(state, input, user, today) {
+  if (!user || !['Pharmacist', 'Administrator'].includes(user.role)) return fail('Only pharmacists and administrators can configure reorder settings.');
+  if (!state.clinics.some((c) => c.id === input.clinicId)) return fail('Choose a valid clinic.');
+  if (user.role === 'Pharmacist' && user.clinicId !== input.clinicId) return fail('You can only configure reorder settings for your own clinic.');
+  const medicine = state.batches.find((b) => b.clinicId === input.clinicId && b.medicineId === input.medicineId);
+  if (!medicine) return fail('Choose a medicine stocked at the selected clinic.');
+  const threshold = Number(input.threshold), quantity = Number(input.reorderQuantity), unitPrice = Number(input.unitPrice);
+  if (input.threshold == null || input.threshold === '' || !Number.isInteger(threshold) || threshold < 0) return fail('Minimum stock threshold must be a whole number, 0 or more.');
+  if (!Number.isInteger(quantity) || quantity <= 0) return fail('Reorder quantity must be a whole number above 0.');
+  if (input.unitPrice == null || input.unitPrice === '' || !Number.isFinite(unitPrice) || unitPrice < 0) return fail('Unit purchase price must be 0 or more.');
+  if (!input.supplier?.trim()) return fail('Preferred supplier is required.');
+  const s = clone(state);
+  const setting = {
+    clinicId: input.clinicId, medicineId: medicine.medicineId, medicineName: medicine.name, unit: medicine.unit,
+    threshold, reorderQuantity: quantity, unitPrice, supplier: input.supplier.trim(),
+    supplierContact: (input.supplierContact || '').trim(), active: input.active !== false, updatedAt: new Date().toISOString(),
+  };
+  const idx = s.reorderSettings.findIndex((x) => x.clinicId === setting.clinicId && x.medicineId === setting.medicineId);
+  if (idx < 0) s.reorderSettings.push(setting); else s.reorderSettings[idx] = { ...setting, suppressedAtAvailable: undefined };
+  log(s, 'purchase', `${user.name} ${idx < 0 ? 'configured' : 'updated'} reorder settings for ${medicine.name} at ${cname(s, setting.clinicId)}.`);
+  evaluateReorders(s, today, [{ clinicId: setting.clinicId, medicineId: setting.medicineId }]);
+  return ok(s, { setting });
+}
+
+const addPurchaseHistory = (purchase, status, user, note) => {
+  purchase.history.push({ status, at: new Date().toISOString(), by: user.name, note });
+};
+
+export function purchaseAction(state, id, action, user, today, details = {}) {
+  const original = (state.purchases || []).find((p) => p.id === id);
+  if (!original) return fail('Purchase request not found.');
+  const isAdmin = user?.role === 'Administrator';
+  const isPharmacist = user?.role === 'Pharmacist' && user.clinicId === original.clinicId;
+  const isApprover = isAdmin || user?.role === 'Medical Officer';
+  const allowed = action === 'approve' || action === 'reject' ? isApprover && original.status === 'Pending Approval'
+    : action === 'place' ? (isPharmacist || isAdmin) && original.status === 'Approved'
+      : action === 'receive' ? (isPharmacist || isAdmin) && ['Order Placed', 'Partially Received'].includes(original.status)
+        : action === 'cancel' ? (isPharmacist || isAdmin) && PURCHASE_ACTIVE.includes(original.status) : false;
+  if (!allowed) return fail(`${user?.role || 'User'} cannot ${action} purchase ${id} in status "${original.status}".`);
+  const s = clone(state), p = s.purchases.find((x) => x.id === id);
+  if (['reject', 'cancel'].includes(action) && !details.reason?.trim()) return fail('A reason is required.');
+  if (action === 'receive') {
+    const qty = Number(details.quantity);
+    if (!Number.isInteger(qty) || qty <= 0) return fail('Received quantity must be a whole number above 0.');
+    if (qty > purchaseOutstanding(p)) return fail(`Only ${purchaseOutstanding(p)} ${p.unit} remain on this order.`);
+    if (!details.batchNo?.trim()) return fail('Supplier batch number is required.');
+    if (!isValidDate(details.expiry) || details.expiry < today) return fail('Enter a valid future expiry date for the delivery.');
+    p.receivedQty = (p.receivedQty || 0) + qty;
+    p.actualExpense = p.receivedQty * p.unitPrice;
+    const delivery = { quantity: qty, batchNo: details.batchNo.trim(), expiry: details.expiry, date: today, confirmedAt: new Date().toISOString(), confirmedBy: user.name };
+    p.deliveries.push(delivery);
+    const batches = s.batches.filter((b) => b.clinicId === p.clinicId && b.medicineId === p.medicineId && daysLeft(b.expiry, today) >= 0);
+    const same = batches.find((b) => b.batchNo.toLowerCase() === delivery.batchNo.toLowerCase() && b.expiry === delivery.expiry);
+    if (same) same.qty += qty;
+    else {
+      const template = batches[0] || state.batches.find((b) => b.clinicId === p.clinicId && b.medicineId === p.medicineId);
+      if (!template) return fail('Medicine batch details are unavailable for this clinic.');
+      const dailyTotal = batches.reduce((n, b) => n + b.daily, 0), currentQty = batches.reduce((n, b) => n + b.qty, 0);
+      const batch = { ...template, id: 'B-' + String(s.seq.batch++).padStart(4, '0'), batchNo: delivery.batchNo, qty, expiry: delivery.expiry, unitCost: p.unitPrice, daily: 0 };
+      s.batches.push(batch);
+      const group = s.batches.filter((b) => b.clinicId === p.clinicId && b.medicineId === p.medicineId && daysLeft(b.expiry, today) >= 0);
+      const total = currentQty + qty;
+      if (dailyTotal > 0 && total > 0) group.forEach((b) => { b.daily = Math.round(((dailyTotal * b.qty) / total) * 100) / 100; });
+    }
+    p.status = purchaseOutstanding(p) === 0 ? 'Received' : 'Partially Received';
+    addPurchaseHistory(p, p.status, user, `Confirmed delivery of ${qty} ${p.unit}; actual expense ${qty * p.unitPrice}.`);
+    const msg = `${p.id}: ${qty} ${p.unit} ${p.medicineName} delivery ${p.status === 'Received' ? 'confirmed' : 'partially received'}.`;
+    notifyPurchase(s, p, msg, p.status === 'Received' ? 'received' : 'partial');
+    log(s, 'purchase', `${user.name} confirmed receipt of ${qty} ${p.unit} ${p.medicineName} for ${p.id} at ${cname(s, p.clinicId)}.`);
+    evaluateReorders(s, today, [{ clinicId: p.clinicId, medicineId: p.medicineId }]);
+    return ok(s, { purchase: p, delivery });
+  }
+  if (action === 'approve') {
+    p.status = 'Approved'; p.approvedAt = new Date().toISOString(); p.approvedBy = user.name; p.approvalNote = (details.note || '').trim();
+    addPurchaseHistory(p, p.status, user, p.approvalNote || 'Purchase request approved.');
+    notifyPurchase(s, p, `${p.id} was approved by ${user.name}.`, 'approved');
+  } else if (action === 'reject') {
+    p.status = 'Rejected'; p.rejectionReason = details.reason.trim(); p.rejectedAt = new Date().toISOString(); p.rejectedBy = user.name;
+    addPurchaseHistory(p, p.status, user, p.rejectionReason);
+    notifyPurchase(s, p, `${p.id} was rejected: ${p.rejectionReason}`, 'rejected');
+  } else if (action === 'place') {
+    p.status = 'Order Placed'; p.placedAt = new Date().toISOString(); p.placedBy = user.name;
+    addPurchaseHistory(p, p.status, user, 'Pharmacist marked the supplier order as placed.');
+    notifyPurchase(s, p, `${p.id} order placed with ${p.supplier}.`, 'placed');
+  } else if (action === 'cancel') {
+    p.status = 'Cancelled'; p.cancellationReason = details.reason.trim(); p.cancelledAt = new Date().toISOString(); p.cancelledBy = user.name;
+    addPurchaseHistory(p, p.status, user, p.cancellationReason);
+    notifyPurchase(s, p, `${p.id} was cancelled: ${p.cancellationReason}`, 'cancelled');
+  }
+  const actionText = { approve: 'approved', reject: 'rejected', place: 'marked as placed', cancel: 'cancelled' }[action];
+  log(s, 'purchase', `${user.name} ${actionText} ${p.id} (${p.status}) at ${cname(s, p.clinicId)}.`);
+  if (['reject', 'cancel'].includes(action)) {
+    const setting = s.reorderSettings.find((x) => x.clinicId === p.clinicId && x.medicineId === p.medicineId);
+    if (setting) setting.suppressedAtAvailable = availableReorderStock(s, p.clinicId, p.medicineId, today).available;
+    evaluateReorders(s, today, [{ clinicId: p.clinicId, medicineId: p.medicineId }]);
+  }
+  return ok(s, { purchase: p });
+}
+
+export function markNotificationRead(state, id) {
+  const s = clone(state), item = (s.notifications || []).find((n) => n.id === id);
+  if (!item) return fail('Notification not found.');
+  item.read = true;
   return ok(s);
 }
 
@@ -297,6 +483,7 @@ export function createTransfer(state, rec, user, today) {
   s.transfers.unshift(t);
   appendAudit(s, { transferId: t.id, action: 'created', by: user.name, role: user.role, detail: `${qty} ${t.unit} ${t.medicineName} batch ${t.batchNo}: ${cname(s, t.fromClinic)} -> ${cname(s, t.toClinic)}` });
   log(s, 'transfer', `${user.name} raised ${t.id}: ${qty} ${t.unit} ${t.medicineName} ${cname(s, t.fromClinic)} -> ${cname(s, t.toClinic)}`);
+  evaluateReorders(s, today, [{ clinicId: t.fromClinic, medicineId: t.medicineId }, { clinicId: t.toClinic, medicineId: t.medicineId }]);
   return ok(s, { transfer: t });
 }
 
@@ -334,6 +521,11 @@ export function transferAction(state, id, action, user, today, note = '') {
   t.history.push({ ts: new Date().toISOString(), status: to, by: user.name, note: note || action });
   appendAudit(s, { transferId: t.id, action, from: t0.status, to, by: user.name, role: user.role, detail: `${t.qty} ${t.unit} ${t.medicineName} batch ${t.batchNo}: ${cname(s, t.fromClinic)} -> ${cname(s, t.toClinic)}`, note: note || undefined });
   log(s, 'transfer', `${t.id} ${t0.status} -> ${to} by ${user.name}`);
+  if (action === 'receive') {
+    evaluateReorders(s, today, [{ clinicId: t.fromClinic, medicineId: t.medicineId }, { clinicId: t.toClinic, medicineId: t.medicineId }]);
+  } else if (['reject', 'cancel'].includes(action)) {
+    evaluateReorders(s, today, [{ clinicId: t.toClinic, medicineId: t.medicineId }]);
+  }
   return ok(s, { transfer: t });
 }
 

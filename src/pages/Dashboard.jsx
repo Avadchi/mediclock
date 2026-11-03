@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../store.jsx';
 import { Badge, Empty, Section, Stat, fmtDate, fmtTime, inr, num } from '../components/ui.jsx';
-import { ACTIVE, buildAlerts, daysLeft, fefoSort, projection } from '../lib/logic.js';
+import { ACTIVE, buildAlerts, daysLeft, fefoSort, projection, PURCHASE_ACTIVE, availableReorderStock } from '../lib/logic.js';
 
 export default function Dashboard() {
   const { state, user, today, recs, scope } = useStore();
@@ -15,6 +15,9 @@ export default function Dashboard() {
     const surplusUnits = live.reduce((s, b) => s + projection(b, today).surplus, 0);
     const surplusValue = live.reduce((s, b) => s + projection(b, today).surplus * b.unitCost, 0);
     const transfers = state.transfers.filter((t) => inScope(t.fromClinic) || inScope(t.toClinic));
+    const purchaseSettings = (state.reorderSettings || []).filter((x) => x.active && inScope(x.clinicId));
+    const purchases = (state.purchases || []).filter((p) => inScope(p.clinicId));
+    const activePurchases = purchases.filter((p) => PURCHASE_ACTIVE.includes(p.status));
     const done = transfers.filter((t) => t.status === 'Completed');
     const alerts = buildAlerts(state, today, user, scope);
     return {
@@ -22,6 +25,11 @@ export default function Dashboard() {
       shortages: alerts.shortage.length, critShort: alerts.shortage.filter((a) => a.level === 'Critical').length, surplusUnits, surplusValue,
       pending: transfers.filter((t) => ACTIVE.includes(t.status)).length, done: done.length,
       avoided: done.reduce((s, t) => s + t.qty * t.unitCost, 0), avoidedUnits: done.reduce((s, t) => s + t.qty, 0),
+      reorderDue: purchaseSettings.filter((x) => availableReorderStock(state, x.clinicId, x.medicineId, today).available <= x.threshold).length,
+      purchaseApprovals: activePurchases.filter((p) => p.status === 'Pending Approval').length,
+      purchaseDelivery: activePurchases.filter((p) => ['Order Placed', 'Partially Received'].includes(p.status)).length,
+      purchaseEstimate: activePurchases.reduce((sum, p) => sum + Math.max(0, p.quantity - (p.receivedQty || 0)) * p.unitPrice, 0),
+      purchaseExpense: purchases.reduce((sum, p) => sum + (p.actualExpense || 0), 0),
       alerts, transfers,
     };
   }, [state, today, scope, user]);
@@ -44,6 +52,14 @@ export default function Dashboard() {
         <Stat label="Completed transfers" value={d.done} tone="green" />
         <Stat label="Estimated wastage avoided" value={inr(d.avoided)} tone="green" sub={`${num(d.avoidedUnits)} units redistributed (estimate)`} />
       </div>
+      <Section title="Purchasing" action={<Link to="/purchases" className="text-xs font-medium text-brand-600">Manage purchases</Link>}>
+        <div className="grid grid-cols-2 gap-3 p-3 md:grid-cols-4">
+          <Stat label="Medicines below reorder threshold" value={d.reorderDue} tone="red" />
+          <Stat label="Pending purchase approvals" value={d.purchaseApprovals} tone="amber" />
+          <Stat label="Orders awaiting delivery" value={d.purchaseDelivery} tone="teal" />
+          <Stat label="Estimated pending purchase value" value={inr(d.purchaseEstimate)} sub={`Actual expenses: ${inr(d.purchaseExpense)}`} tone="green" />
+        </div>
+      </Section>
 
       {myRecs.length > 0 && (
         <Section title="Swap Board suggestions" action={<Link to="/swap" className="text-xs font-medium text-brand-600">Open Swap Board</Link>}>

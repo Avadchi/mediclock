@@ -62,7 +62,8 @@ export function seedData(today) {
   ];
   return {
     version: 1, createdAt: new Date().toISOString(), clinics: structuredClone(CLINICS), users, batches, transfers: [], audit: [],
+    reorderSettings: [], purchases: [], notifications: [],
     activity: [{ id: 'ACT-0', ts: new Date().toISOString(), type: 'system', text: 'Demo dataset loaded (fictional data).' }],
-    seq: { transfer: 1, batch: batches.length + 1, activity: 1, clinic: 6, user: 8 },
+    seq: { transfer: 1, batch: batches.length + 1, activity: 1, clinic: 6, user: 8, purchase: 1, notification: 1 },
   };
 }

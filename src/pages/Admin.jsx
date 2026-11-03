@@ -37,7 +37,7 @@ export default function Admin() {
       </div>
       <Section title="System">
         <div className="space-y-2 p-4 text-sm text-black">
-          <p>{state.batches.length} batches · {state.transfers.length} transfers · {state.audit.length} audit records. Data lives in this browser's LocalStorage (demo mode).</p>
+          <p>{state.batches.length} batches · {state.transfers.length} transfers · {(state.purchases || []).length} purchase requests · {(state.reorderSettings || []).length} reorder settings · {state.audit.length} audit records. Data lives in this browser's LocalStorage (demo mode).</p>
           <button className="btn-danger" onClick={() => setConfirmReset(true)}>Reset demo data</button>
         </div>
       </Section>

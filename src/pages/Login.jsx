@@ -3,9 +3,9 @@ import { useStore } from '../store.jsx';
 import { Logo } from '../components/ui.jsx';
 
 const ROLE_INFO = {
-  Pharmacist: 'Manages inventory, consumption and transfer requests for one clinic.',
-  'Medical Officer': 'Reviews and approves or rejects transfers across the network.',
-  Administrator: 'Manages clinics, users and system-wide analytics.',
+  Pharmacist: 'Manages inventory, reorder settings, purchase deliveries and transfer requests for one clinic.',
+  'Medical Officer': 'Reviews and approves or rejects purchase requests and inter-clinic transfers.',
+  Administrator: 'Manages clinics, users and purchase workflows across the network.',
 };
 
 export default function Login() {

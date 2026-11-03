@@ -9,7 +9,9 @@ import Transfers from './pages/Transfers.jsx';
 import NetworkMap from './pages/NetworkMap.jsx';
 import Reports from './pages/Reports.jsx';
 import Admin from './pages/Admin.jsx';
+import PurchaseManagement from './pages/PurchaseManagement.jsx';
 import Login from './pages/Login.jsx';
+import { markNotificationRead } from './lib/logic.js';
 
 const PRIMARY = [
   { to: '/inventory', label: 'My shelf' },
@@ -20,21 +22,25 @@ const PRIMARY = [
 const SECONDARY = [
   { to: '/', label: 'Home page', end: true },
   { to: '/transfers', label: 'Transfers' },
+  { to: '/purchases', label: 'Purchases' },
   { to: '/map', label: 'Clinic map' },
   { to: '/reports', label: 'Reports' },
   { to: '/admin', label: 'Administration', roles: ['Administrator'] },
 ];
 
 function Notifications() {
-  const { alerts } = useStore();
+  const { alerts, state, scope, run } = useStore();
   const [open, setOpen] = useState(false);
   const nav = useNavigate();
-  const items = [...alerts.work, ...alerts.shortage.filter((a) => a.level === 'Critical'), ...alerts.expiry.filter((a) => ['Critical', 'Expired'].includes(a.level))];
+  const stored = (state.notifications || []).filter((n) => scope === 'all' || n.clinicId === scope)
+    .map((n) => ({ kind: 'purchase', level: n.read ? 'Normal' : 'Action', text: n.text, notificationId: n.id }));
+  const items = [...stored, ...alerts.work, ...alerts.shortage.filter((a) => a.level === 'Critical'), ...alerts.expiry.filter((a) => ['Critical', 'Expired'].includes(a.level))];
+  const unread = stored.filter((n) => n.level === 'Action').length;
   return (
     <div className="relative">
       <button className="btn-ghost !px-2.5" onClick={() => setOpen(!open)} aria-label="Notifications" aria-expanded={open}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 0 0 4 0" /></svg>
-        {items.length > 0 && <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-red-600 px-1 text-center text-[11px] font-semibold text-white">{items.length}</span>}
+        {items.length > 0 && <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-red-600 px-1 text-center text-[11px] font-semibold text-white">{unread + items.length - stored.length}</span>}
       </button>
       {open && (
         <div className="absolute right-0 z-40 mt-2 w-[22rem] max-w-[92vw] rounded-lg border border-slate-200 bg-white shadow-lg">
@@ -42,7 +48,7 @@ function Notifications() {
           <ul className="max-h-96 divide-y overflow-y-auto">
             {items.length === 0 && <li className="p-4 text-center text-sm text-black">No urgent alerts.</li>}
             {items.slice(0, 20).map((a, i) => (
-              <li key={i}><button className="flex w-full gap-2 px-3 py-2 text-left hover:bg-slate-50" onClick={() => { setOpen(false); nav(a.kind === 'workflow' ? '/transfers' : a.kind === 'shortage' ? '/swap' : '/inventory'); }}>
+              <li key={a.notificationId || i}><button className="flex w-full gap-2 px-3 py-2 text-left hover:bg-slate-50" onClick={() => { if (a.notificationId) run((s) => markNotificationRead(s, a.notificationId)); setOpen(false); nav(a.kind === 'purchase' ? '/purchases' : a.kind === 'workflow' ? '/transfers' : a.kind === 'shortage' ? '/swap' : '/inventory'); }}>
                 <Badge tone={a.level}>{a.level}</Badge><span className="text-xs text-slate-700">{a.text}</span></button></li>
             ))}
           </ul>
@@ -139,6 +145,7 @@ export default function App() {
         <Route path="/inventory" element={<Inventory key={loc.search} />} />
         <Route path="/swap" element={<SwapBoard />} />
         <Route path="/transfers" element={<Transfers />} />
+        <Route path="/purchases" element={<PurchaseManagement />} />
         <Route path="/map" element={<NetworkMap />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/admin" element={user.role === 'Administrator' ? <Admin /> : <Navigate to="/" replace />} />
