@@ -12,7 +12,7 @@ function Stepper({ status }) {
   return (
     <ol className="flex flex-wrap gap-1 text-[11px]">
       {['Sending', 'Receiving', 'Officer', 'Approved', 'Dispatched', 'Received'].map((s, i) => (
-        <li key={s} className={`rounded px-1.5 py-0.5 ${idx < 0 ? 'bg-slate-100 text-slate-400' : i < idx || status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : i === idx ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-400'}`}>{s}</li>
+        <li key={s} className={`rounded px-1.5 py-0.5 ${idx < 0 ? 'bg-slate-100 text-slate-400' : i < idx || status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : i === idx ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-400'}`}>{s}</li>
       ))}
     </ol>
   );
@@ -63,7 +63,7 @@ export default function Transfers() {
         <p className="border-t px-4 py-2 text-xs text-slate-500">Demo audit records are append-only inside this app and hash-chained to reveal edits, but LocalStorage can still be altered by anyone with browser access. Production needs server-side enforcement.</p>
       </Section>
       {ask && <Confirm title={`${LABEL[ask.a]} ${ask.t.id}?`} message={`${LABEL[ask.a]}: ${ask.t.qty} ${ask.t.unit} ${ask.t.medicineName}, ${cname(ask.t.fromClinic)} → ${cname(ask.t.toClinic)}.` + (ask.a === 'receive' ? ' Both clinic inventories will be updated.' : '')} confirmLabel={LABEL[ask.a]} danger={DANGER.includes(ask.a)} onConfirm={() => doAction(ask.t, ask.a)} onClose={() => setAsk(null)} />}
-      {detail && <Modal title={`${detail.id} history`} onClose={() => setDetail(null)}><ol className="space-y-2 text-sm">{(state.transfers.find((x) => x.id === detail.id) || detail).history.map((h, i) => <li key={i} className="border-l-2 border-teal-600 pl-3"><div className="font-medium">{h.status}</div><div className="text-xs text-slate-500">{h.by} · {fmtTime(h.ts)}</div></li>)}</ol></Modal>}
+      {detail && <Modal title={`${detail.id} history`} onClose={() => setDetail(null)}><ol className="space-y-2 text-sm">{(state.transfers.find((x) => x.id === detail.id) || detail).history.map((h, i) => <li key={i} className="border-l-2 border-brand-600 pl-3"><div className="font-medium">{h.status}</div><div className="text-xs text-slate-500">{h.by} · {fmtTime(h.ts)}</div></li>)}</ol></Modal>}
     </div>
   );
 }

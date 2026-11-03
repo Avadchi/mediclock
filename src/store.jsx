@@ -4,6 +4,7 @@ import { todayISO, buildRecommendations, allSummaries, buildAlerts } from './lib
 
 const DATA_KEY = 'mediclock.data.v1';
 const SESSION_KEY = 'mediclock.session.v1';
+const SCOPE_KEY = 'mediclock.scope.v1';
 const Ctx = createContext(null);
 export const useStore = () => useContext(Ctx);
 
@@ -18,6 +19,7 @@ function load() {
 export function StoreProvider({ children }) {
   const [state, setState] = useState(load);
   const [userId, setUserId] = useState(() => { try { return localStorage.getItem(SESSION_KEY); } catch { return null; } });
+  const [scopeId, setScopeId] = useState(() => { try { return localStorage.getItem(SCOPE_KEY) || ''; } catch { return ''; } });
   const [toast, setToast] = useState(null);
   const [storageError, setStorageError] = useState(false);
   const today = todayISO();
@@ -28,6 +30,11 @@ export function StoreProvider({ children }) {
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 4000); return () => clearTimeout(t); }, [toast]);
 
   const user = state.users.find((u) => u.id === userId) || null;
+  const scope = scopeId || user?.clinicId || 'all';
+  const setScope = useCallback((id) => {
+    setScopeId(id);
+    try { if (id) localStorage.setItem(SCOPE_KEY, id); else localStorage.removeItem(SCOPE_KEY); } catch { /* ignore */ }
+  }, []);
   const notify = useCallback((text, kind = 'ok') => setToast({ text, kind, id: Date.now() }), []);
 
   const run = useCallback((fn, success) => {
@@ -39,9 +46,14 @@ export function StoreProvider({ children }) {
     return r;
   }, [state, notify]);
 
-  const login = (id) => { try { localStorage.setItem(SESSION_KEY, id); } catch { /* ignore */ } setUserId(id); };
+  const login = (id) => {
+    try { localStorage.setItem(SESSION_KEY, id); } catch { /* ignore */ }
+    setUserId(id);
+    const next = state.users.find((u) => u.id === id);
+    setScope(next?.clinicId || 'all');
+  };
   const logout = () => { try { localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ } setUserId(null); };
-  const reset = () => { setState(seedData(todayISO())); notify('Demo data restored to the original dataset.'); };
+  const reset = () => { setState(seedData(todayISO())); setScope(user?.clinicId || 'all'); notify('Demo data restored to the original dataset.'); };
 
   const derived = useMemo(() => ({
     recs: buildRecommendations(state, today),
@@ -49,6 +61,6 @@ export function StoreProvider({ children }) {
     alerts: buildAlerts(state, today, user),
   }), [state, today, user]);
 
-  const value = { state, user, today, login, logout, reset, run, notify, toast, storageError, ...derived };
+  const value = { state, user, today, scope, setScope, login, logout, reset, run, notify, toast, storageError, ...derived };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
