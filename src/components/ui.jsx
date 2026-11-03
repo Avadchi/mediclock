@@ -17,7 +17,7 @@ const TONE = {
   Approved: 'bg-[#e8f5ec] text-[#1e7b3c] ring-[#bfe5cc]',
   Dispatched: 'bg-brand-50 text-brand-700 ring-[#cfe0f5]',
   Rejected: 'bg-[#fdeceb] text-[#b42318] ring-[#f5c2c0]',
-  Cancelled: 'bg-slate-100 text-slate-600 ring-slate-200',
+  Cancelled: 'bg-slate-100 text-black ring-slate-200',
   Action: 'bg-navy-50 text-navy-800 ring-navy-100',
 };
 export function Badge({ children, tone }) {
@@ -31,7 +31,6 @@ export function Logo() {
   return (
     <span className="inline-flex items-baseline gap-1.5">
       <span className="text-[22px] font-bold leading-none tracking-tight text-navy-900">Medi<span className="text-brand-600">Clock</span></span>
-      <span className="text-xs font-normal text-slate-500">· prototype v0.1</span>
     </span>
   );
 }
@@ -41,8 +40,8 @@ export function Stat({ label, value, sub, tone = 'navy', highlight = false }) {
   return (
     <div className={`rounded-lg border p-4 ${highlight ? 'border-[#f0d9c0] bg-[#fdf3e8]' : 'border-slate-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'}`}>
       <div className={`text-2xl font-semibold leading-tight tabular-nums ${c}`}>{value}</div>
-      <div className="mt-1 text-xs leading-snug text-slate-500">{label}</div>
-      {sub && <div className="mt-0.5 text-xs text-slate-400">{sub}</div>}
+      <div className="mt-1 text-xs leading-snug text-black">{label}</div>
+      {sub && <div className="mt-0.5 text-xs text-black">{sub}</div>}
     </div>
   );
 }
@@ -61,7 +60,7 @@ export function Section({ title, action, children, className = '' }) {
 export const Empty = ({ title, hint }) => (
   <div className="px-4 py-8 text-center">
     <div className="text-sm font-medium text-slate-700">{title}</div>
-    {hint && <div className="mt-1 text-xs text-slate-500">{hint}</div>}
+    {hint && <div className="mt-1 text-xs text-black">{hint}</div>}
   </div>
 );
 
@@ -72,7 +71,7 @@ export function Modal({ title, onClose, children, wide }) {
       <div role="dialog" aria-modal="true" aria-label={title} className={`max-h-[92vh] w-full overflow-y-auto rounded-t-xl bg-white shadow-xl sm:rounded-xl ${wide ? 'sm:max-w-2xl' : 'sm:max-w-md'}`}>
         <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3">
           <h3 className="text-base font-semibold text-navy-900">{title}</h3>
-          <button className="rounded p-1 text-slate-500 hover:bg-slate-100" onClick={onClose} aria-label="Close">✕</button>
+          <button className="rounded p-1 text-black hover:bg-slate-100" onClick={onClose} aria-label="Close">✕</button>
         </div>
         <div className="p-4">{children}</div>
       </div>
@@ -83,8 +82,8 @@ export function Modal({ title, onClose, children, wide }) {
 export function Confirm({ title, message, confirmLabel = 'Confirm', danger, onConfirm, onClose }) {
   return (
     <Modal title={title} onClose={onClose}>
-      <p className="text-sm text-slate-600">{message}</p>
-      <p className="mt-2 text-xs text-slate-500">Demo mode: this is a simulated approval, not a legal authorisation.</p>
+      <p className="text-sm text-black">{message}</p>
+      <p className="mt-2 text-xs text-black">Demo mode: this is a simulated approval, not a legal authorisation.</p>
       <div className="mt-4 flex justify-end gap-2">
         <button className="btn-ghost" onClick={onClose}>Back</button>
         <button className={danger ? 'btn-danger' : 'btn-primary'} onClick={() => { onConfirm(); onClose(); }}>{confirmLabel}</button>
@@ -95,9 +94,9 @@ export function Confirm({ title, message, confirmLabel = 'Confirm', danger, onCo
 
 export const Field = ({ label, error, children, hint }) => (
   <label className="block text-sm">
-    <span className="mb-1 block text-xs font-medium text-slate-600">{label}</span>
+    <span className="mb-1 block text-xs font-medium text-black">{label}</span>
     {children}
-    {hint && !error && <span className="mt-0.5 block text-xs text-slate-400">{hint}</span>}
+    {hint && !error && <span className="mt-0.5 block text-xs text-black">{hint}</span>}
     {error && <span className="mt-0.5 block text-xs text-red-600">{error}</span>}
   </label>
 );

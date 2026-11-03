@@ -45,12 +45,12 @@ export default function Reports() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <div><h1 className="text-xl font-semibold text-navy-900">Reports and impact</h1><p className="text-sm text-slate-500">Expiry risk, shortages and redistribution results.</p></div>
+        <div><h1 className="text-xl font-semibold text-navy-900">Reports and impact</h1><p className="text-sm text-black">Expiry risk, shortages and redistribution results.</p></div>
         <div className="flex flex-wrap gap-2"><button className="btn-ghost" onClick={exportBatches}>Export batches CSV</button><button className="btn-ghost" onClick={exportTransfers}>Export transfers CSV</button><button className="btn-ghost" onClick={exportShort}>Export shortages CSV</button></div>
       </div>
       <div className="card grid gap-2 p-3 sm:grid-cols-2">
-        <label className="flex items-center gap-2 text-xs text-slate-500">From<input className="input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
-        <label className="flex items-center gap-2 text-xs text-slate-500">To<input className="input" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+        <label className="flex items-center gap-2 text-xs text-black">From<input className="input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+        <label className="flex items-center gap-2 text-xs text-black">To<input className="input" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
       </div>
       <div className="rounded-md bg-amber-50 p-3 text-xs text-amber-900">Simulated demo data. Projected wastage, wastage avoided and inventory value saved are estimates using illustrative unit costs. They are not measured results. The date range applies to completed transfers only.</div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

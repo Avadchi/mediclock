@@ -12,13 +12,13 @@ import Admin from './pages/Admin.jsx';
 import Login from './pages/Login.jsx';
 
 const PRIMARY = [
-  { to: '/inventory', label: 'My shelf', step: 1 },
-  { to: '/swap', label: 'Swap board', step: 2 },
-  { label: 'Add stock', step: 3, action: 'add' },
+  { to: '/inventory', label: 'My shelf' },
+  { to: '/swap', label: 'Swap board'},
+  { label: 'Add stock', action: 'add' },
 ];
 
 const SECONDARY = [
-  { to: '/', label: 'Dashboard', end: true },
+  { to: '/', label: 'Home page', end: true },
   { to: '/transfers', label: 'Transfers' },
   { to: '/map', label: 'Clinic map' },
   { to: '/reports', label: 'Reports' },
@@ -40,7 +40,7 @@ function Notifications() {
         <div className="absolute right-0 z-40 mt-2 w-[22rem] max-w-[92vw] rounded-lg border border-slate-200 bg-white shadow-lg">
           <div className="border-b px-3 py-2 text-sm font-semibold text-navy-900">Notifications</div>
           <ul className="max-h-96 divide-y overflow-y-auto">
-            {items.length === 0 && <li className="p-4 text-center text-sm text-slate-500">No urgent alerts.</li>}
+            {items.length === 0 && <li className="p-4 text-center text-sm text-black">No urgent alerts.</li>}
             {items.slice(0, 20).map((a, i) => (
               <li key={i}><button className="flex w-full gap-2 px-3 py-2 text-left hover:bg-slate-50" onClick={() => { setOpen(false); nav(a.kind === 'workflow' ? '/transfers' : a.kind === 'shortage' ? '/swap' : '/inventory'); }}>
                 <Badge tone={a.level}>{a.level}</Badge><span className="text-xs text-slate-700">{a.text}</span></button></li>
@@ -79,7 +79,7 @@ function Shell({ children }) {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
             <div className="min-w-[15rem] flex-1">
               <Logo />
-              <p className="mt-1 text-xs text-slate-500">Use the earliest-expiring stock first, and move spare stock to a nearby clinic before it expires.</p>
+              <p className="mt-1 text-xs text-slate-900">Use the earliest-expiring stock first, and move spare stock to a nearby clinic before it expires.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <select className="input !w-auto max-w-[15rem]" value={scope} onChange={(e) => setScope(e.target.value)} aria-label="Dispensary">
@@ -94,14 +94,14 @@ function Shell({ children }) {
               {PRIMARY.map((n) => {
                 if (n.action && user.role !== 'Pharmacist') return null;
                 return n.action ? (
-                  <button key={n.label} onClick={addStock} className={`pill ${addActive ? 'pill-active' : ''}`}>{n.step} · {n.label}</button>
+                  <button key={n.label} onClick={addStock} className={`pill ${addActive ? 'pill-active' : ''}`}> {n.label}</button>
                 ) : (
-                  <NavLink key={n.to} to={n.to} className={({ isActive }) => `pill ${isActive && !addActive ? 'pill-active' : ''}`}>{n.step} · {n.label}</NavLink>
+                  <NavLink key={n.to} to={n.to} className={({ isActive }) => `pill ${isActive && !addActive ? 'pill-active' : ''}`}> {n.label}</NavLink>
                 );
               })}
               <span className="mx-1 hidden h-5 w-px bg-slate-200 sm:block" aria-hidden="true" />
               {links.map((n) => (
-                <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `px-1.5 text-xs font-medium transition-colors ${isActive ? 'text-navy-900' : 'text-slate-500 hover:text-navy-900'}`}>{n.label}</NavLink>
+                <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `px-1.5 text-xs font-medium transition-colors 'text-navy-900'`}>{n.label}</NavLink>
               ))}
             </nav>
             <div className="ml-auto flex items-center gap-2">
@@ -114,7 +114,6 @@ function Shell({ children }) {
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-4">
-        <DemoBanner today={today} />
         <div className="mt-4">{children}</div>
       </main>
       {confirmReset && <Confirm title="Reset demo data?" message="This restores the original dataset and removes all changes, transfers and audit history." confirmLabel="Reset" danger onConfirm={reset} onClose={() => setConfirmReset(false)} />}

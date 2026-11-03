@@ -32,7 +32,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <div><h1 className="text-xl font-semibold text-navy-900">Dashboard</h1><p className="text-sm text-slate-500">Expiry risk and stock-out risk in one view.</p></div>
+        <div><h1 className="text-xl font-semibold text-navy-900">Dashboard</h1><p className="text-sm text-black">Expiry risk and stock-out risk in one view.</p></div>
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Medicine batches" value={d.batches} />
@@ -51,7 +51,7 @@ export default function Dashboard() {
             <li key={r.id} className="flex flex-wrap items-center gap-2 px-4 py-2 text-sm">
               <Badge tone={r.urgency}>{r.urgency}</Badge>
               <span><b>{r.qty} {r.unit}</b> {r.medicineName}: {cname(r.fromClinic)} → {cname(r.toClinic)}</span>
-              <span className="ml-auto text-xs text-slate-500">transfer by {fmtDate(r.deadline)}</span>
+              <span className="ml-auto text-xs text-black">transfer by {fmtDate(r.deadline)}</span>
             </li>))}</ul>
         </Section>
       )}
@@ -67,11 +67,11 @@ export default function Dashboard() {
         </Section>
         <Section title="Recent inventory activity">
           {activity.length === 0 ? <Empty title="No inventory changes yet" hint="Add a batch or record consumption to see it here." /> : (
-            <ul className="divide-y">{activity.map((a) => <li key={a.id} className="px-4 py-2 text-sm">{a.text}<div className="text-xs text-slate-400">{fmtTime(a.ts)}</div></li>)}</ul>)}
+            <ul className="divide-y">{activity.map((a) => <li key={a.id} className="px-4 py-2 text-sm">{a.text}<div className="text-xs text-black">{fmtTime(a.ts)}</div></li>)}</ul>)}
         </Section>
         <Section title="Recent transfer activity" action={<Link to="/transfers" className="text-xs font-medium text-brand-600">All transfers</Link>}>
           {tActivity.length === 0 ? <Empty title="No transfers yet" hint="Raise a transfer from the Swap Board to start the approval workflow." /> : (
-            <ul className="divide-y">{tActivity.map((a) => <li key={a.id} className="px-4 py-2 text-sm">{a.text}<div className="text-xs text-slate-400">{fmtTime(a.ts)}</div></li>)}</ul>)}
+            <ul className="divide-y">{tActivity.map((a) => <li key={a.id} className="px-4 py-2 text-sm">{a.text}<div className="text-xs text-black">{fmtTime(a.ts)}</div></li>)}</ul>)}
         </Section>
       </div>
 
@@ -84,7 +84,7 @@ export default function Dashboard() {
           <Link className="btn-ghost" to="/reports">Impact reports</Link>
         </div>
       </Section>
-      <p className="text-xs text-slate-500">Wastage-avoided figures are estimates from completed demo transfers and illustrative unit costs. They are not measured outcomes.</p>
+      <p className="text-xs text-black">Wastage-avoided figures are estimates from completed demo transfers and illustrative unit costs. They are not measured outcomes.</p>
     </div>
   );
 }

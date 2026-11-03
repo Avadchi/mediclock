@@ -51,7 +51,7 @@ function QtyModal({ batch, mode, onClose }) {
   return (
     <Modal title={mode === 'adjust' ? 'Update quantity' : 'Record consumption'} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3">
-        <p className="text-sm text-slate-600">{batch.name}, batch {batch.batchNo}. In stock: {batch.qty} {batch.unit}.</p>
+        <p className="text-sm text-black">{batch.name}, batch {batch.batchNo}. In stock: {batch.qty} {batch.unit}.</p>
         <Field label={mode === 'adjust' ? `New quantity (${batch.unit})` : `Quantity used (${batch.unit})`} error={err}><input autoFocus className="input" type="number" min="0" step="1" value={v} onChange={(e) => setV(e.target.value)} /></Field>
         <div className="flex justify-end gap-2"><button type="button" className="btn-ghost" onClick={onClose}>Cancel</button><button className="btn-primary">{mode === 'adjust' ? 'Save quantity' : 'Record use'}</button></div>
       </form>
@@ -100,13 +100,13 @@ export default function Inventory() {
       <div className="card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
           <h2 className="text-sm font-semibold text-navy-900">Shelf list · earliest expiry first (use these first)</h2>
-          {!canAdd && <span className="text-xs text-slate-500">View only: stock changes are made by clinic pharmacists.</span>}
+          {!canAdd && <span className="text-xs text-black">View only: stock changes are made by clinic pharmacists.</span>}
         </div>
         <div className="grid gap-2 border-b border-slate-100 p-3 sm:grid-cols-2 lg:grid-cols-4">
           <input className="input" placeholder="Search medicine, batch, clinic" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search inventory" />
           <select className="input" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Expiry status"><option value="all">All expiry statuses</option>{['Normal', 'Monitor', 'Warning', 'Critical', 'Expired'].map((s) => <option key={s}>{s}</option>)}</select>
           <select className="input" value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Category"><option value="all">All categories</option>{cats.map((c) => <option key={c}>{c}</option>)}</select>
-          <div className="self-center text-xs text-slate-500">Showing {scope === 'all' ? 'all clinics' : cname(scope)} · {rows.length} batches</div>
+          <div className="self-center text-xs text-black">Showing {scope === 'all' ? 'all clinics' : cname(scope)} · {rows.length} batches</div>
         </div>
         {rows.length === 0 ? <Empty title="No batches match" hint="Clear a filter or add a new batch." /> : (
           <div className="overflow-x-auto">
@@ -121,14 +121,14 @@ export default function Inventory() {
                     <tr key={b.id} className="hover:bg-slate-50/70">
                       <td className="td">
                         <div className="font-medium text-navy-900">{b.name}</div>
-                        <div className="text-xs text-slate-400">{b.unit}{scope === 'all' ? ` · ${cname(b.clinicId)}` : ''}</div>
+                        <div className="text-xs text-black">{b.unit}{scope === 'all' ? ` · ${cname(b.clinicId)}` : ''}</div>
                       </td>
-                      <td className="td text-slate-600">{b.batchNo}</td>
+                      <td className="td text-black">{b.batchNo}</td>
                       <td className="td tabular-nums">{num(b.qty)}{reserved > 0 && <div className="text-xs text-brand-700">{reserved} reserved</div>}</td>
-                      <td className="td whitespace-nowrap tabular-nums text-slate-600">{fmtDate(b.expiry)}</td>
-                      <td className={`td tabular-nums font-medium ${p.days < 0 ? 'text-red-600' : 'text-slate-600'}`}>{p.days}</td>
-                      <td className="td tabular-nums text-slate-600">{b.daily}</td>
-                      <td className="td tabular-nums">{p.surplus > 0 ? <span className="text-amber-800">{p.surplus} {b.unit}</span> : <span className="text-slate-400">–</span>}</td>
+                      <td className="td whitespace-nowrap tabular-nums text-black">{fmtDate(b.expiry)}</td>
+                      <td className={`td tabular-nums font-medium ${p.days < 0 ? 'text-red-600' : 'text-black'}`}>{p.days}</td>
+                      <td className="td tabular-nums text-black">{b.daily}</td>
+                      <td className="td tabular-nums">{p.surplus > 0 ? <span className="text-amber-800">{p.surplus} {b.unit}</span> : <span className="text-black">–</span>}</td>
                       <td className="td"><Badge tone={alert}>{alert}</Badge></td>
                       <td className="td whitespace-nowrap text-right">
                         <button className="text-xs font-medium text-brand-600 hover:underline" onClick={() => setModal({ type: 'view', b })}>View</button>
@@ -145,7 +145,7 @@ export default function Inventory() {
             </table>
           </div>
         )}
-        <p className="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">Projected surplus = quantity − (daily use × days left) − safety buffer. It is an estimate and only becomes transferable stock after the approval workflow.</p>
+        <p className="border-t border-slate-100 px-4 py-2 text-xs text-black">Projected surplus = quantity − (daily use × days left) − safety buffer. It is an estimate and only becomes transferable stock after the approval workflow.</p>
       </div>
       {modal?.type === 'form' && <BatchForm initial={modal.data} isEdit={!!modal.edit} onClose={closeModal} />}
       {modal?.type === 'use' && <QtyModal batch={modal.b} mode="use" onClose={closeModal} />}
@@ -155,7 +155,7 @@ export default function Inventory() {
           <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
             {[['Medicine ID', b.medicineId], ['Category', b.category], ['Clinic', cname(b.clinicId)], ['Quantity', `${b.qty} ${b.unit}`], ['Reserved for transfers', reservedQty(state.transfers, b.id)],
               ['Expiry', `${fmtDate(b.expiry)} (${p.days < 0 ? 'expired' : p.days + ' days left'})`], ['Expiry status', p.status], ['Daily consumption', b.daily], ['Minimum stock', b.minStock], ['Safety buffer', b.buffer],
-              ['Expected consumption', p.expected], ['Projected surplus (estimate)', p.surplus], ['Unit cost (illustrative)', `₹${b.unitCost}`], ['Storage', b.storage]].map(([k, v]) => <div key={k}><dt className="text-xs text-slate-500">{k}</dt><dd className="font-medium">{v}</dd></div>)}
+              ['Expected consumption', p.expected], ['Projected surplus (estimate)', p.surplus], ['Unit cost (illustrative)', `₹${b.unitCost}`], ['Storage', b.storage]].map(([k, v]) => <div key={k}><dt className="text-xs text-black">{k}</dt><dd className="font-medium">{v}</dd></div>)}
           </dl>
         </Modal>); })()}
     </div>

@@ -4,7 +4,7 @@ import { useStore } from '../store.jsx';
 import { Badge, Empty, Field, Modal, fmtDate } from '../components/ui.jsx';
 import { clinicMedSummary, createTransfer, explainRecommendation, projection, SAFETY_MARGIN_DAYS } from '../lib/logic.js';
 
-function Row({ k, v }) { return <div><div className="text-xs text-slate-500">{k}</div><div className="text-sm font-medium text-slate-800">{v}</div></div>; }
+function Row({ k, v }) { return <div><div className="text-xs text-black">{k}</div><div className="text-sm font-medium text-slate-800">{v}</div></div>; }
 
 function RequestModal({ rec, onClose }) {
   const { user, today, run } = useStore();
@@ -21,7 +21,7 @@ function RequestModal({ rec, onClose }) {
   return (
     <Modal title="Raise transfer request" onClose={onClose}>
       <form onSubmit={submit} className="space-y-3">
-        <p className="text-sm text-slate-600">{rec.medicineName}, batch {rec.batchNo}. Stock stays where it is until receipt is confirmed.</p>
+        <p className="text-sm text-black">{rec.medicineName}, batch {rec.batchNo}. Stock stays where it is until receipt is confirmed.</p>
         <Field label={`Quantity (${rec.unit})`} error={err} hint={`Recommended ${rec.qty}`}><input autoFocus className="input" type="number" min="1" max={rec.qty} value={qty} onChange={(e) => setQty(e.target.value)} /></Field>
         <div className="flex justify-end gap-2"><button type="button" className="btn-ghost" onClick={onClose}>Cancel</button><button className="btn-teal">Send for approval</button></div>
       </form>
@@ -46,7 +46,7 @@ export default function SwapBoard() {
 
   return (
     <div className="space-y-4">
-      <div><h1 className="text-xl font-semibold text-navy-900">Smart Swap Board</h1><p className="text-sm text-slate-500">Matches projected surplus at one clinic with a shortage at another, before the stock expires. Rule-based, no AI.</p></div>
+      <div><h1 className="text-xl font-semibold text-navy-900">Smart Swap Board</h1><p className="text-sm text-black">Matches projected surplus at one clinic with a shortage at another, before the stock expires. Rule-based, no AI.</p></div>
       {demo && (
         <div className="card border-[#cfe0f5] bg-brand-50 p-4 text-sm">
           <div className="font-semibold text-navy-900">Headline scenario: ORS, Clinic A to Clinic B</div>
@@ -69,7 +69,7 @@ export default function SwapBoard() {
             return (
               <article key={r.id} className="card p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div><h3 className="font-semibold text-navy-900">{r.medicineName}</h3><div className="text-xs text-slate-500">Batch {r.batchNo}</div></div>
+                  <div><h3 className="font-semibold text-navy-900">{r.medicineName}</h3><div className="text-xs text-black">Batch {r.batchNo}</div></div>
                   <div className="flex gap-1.5"><Badge tone={r.urgency}>{r.urgency} urgency</Badge><Badge>{r.status}</Badge></div>
                 </div>
                 <p className="mt-2 text-sm font-medium text-slate-800">{cname(r.fromClinic)} → {cname(r.toClinic)}</p>
@@ -84,19 +84,19 @@ export default function SwapBoard() {
                   <Row k="Est. travel time" v={`${r.travelMin} min`} />
                   <Row k="Transfer deadline" v={fmtDate(r.deadline)} />
                 </div>
-                <p className="mt-3 text-xs text-slate-600">{r.reason}</p>
+                <p className="mt-3 text-xs text-black">{r.reason}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button className="btn-ghost" onClick={() => setWhy(r)}>Why this match?</button>
                   {canRaise && <button className="btn-teal" onClick={() => setReq(r)}>Raise transfer request</button>}
                   {r.transferId && <Link className="btn-ghost" to="/transfers">View transfer {r.transferId}</Link>}
-                  {r.status === 'Suggested' && !canRaise && <span className="self-center text-xs text-slate-500">Raised by a pharmacist at {cname(r.fromClinic)} or {cname(r.toClinic)}.</span>}
+                  {r.status === 'Suggested' && !canRaise && <span className="self-center text-xs text-black">Raised by a pharmacist at {cname(r.fromClinic)} or {cname(r.toClinic)}.</span>}
                 </div>
               </article>
             );
           })}
         </div>
       )}
-      {why && <Modal title="Why this match?" onClose={() => setWhy(null)} wide><p className="mb-3 text-sm font-medium text-navy-900">{why.medicineName}: {cname(why.fromClinic)} → {cname(why.toClinic)}</p><ol className="list-decimal space-y-2 pl-5 text-sm text-slate-700">{explainRecommendation(why, state).map((l, i) => <li key={i}>{l}</li>)}</ol><p className="mt-3 text-xs text-slate-500">Rules used: expired stock is never recommended; transfers must arrive at least {SAFETY_MARGIN_DAYS} days before expiry; quantity never exceeds eligible surplus or the receiver's shortage.</p></Modal>}
+      {why && <Modal title="Why this match?" onClose={() => setWhy(null)} wide><p className="mb-3 text-sm font-medium text-navy-900">{why.medicineName}: {cname(why.fromClinic)} → {cname(why.toClinic)}</p><ol className="list-decimal space-y-2 pl-5 text-sm text-slate-700">{explainRecommendation(why, state).map((l, i) => <li key={i}>{l}</li>)}</ol><p className="mt-3 text-xs text-black">Rules used: expired stock is never recommended; transfers must arrive at least {SAFETY_MARGIN_DAYS} days before expiry; quantity never exceeds eligible surplus or the receiver's shortage.</p></Modal>}
       {req && <RequestModal rec={req} onClose={() => setReq(null)} />}
     </div>
   );
