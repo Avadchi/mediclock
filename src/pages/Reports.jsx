@@ -7,13 +7,12 @@ import { addDays, allSummaries, daysLeft, projection } from '../lib/logic.js';
 const STATUS_COLOR = { Normal: '#16a34a', Monitor: '#0ea5e9', Warning: '#d97706', Critical: '#dc2626', Expired: '#7f1d1d' };
 
 export default function Reports() {
-  const { state, today } = useStore();
-  const [clinic, setClinic] = useState('all');
+  const { state, today, scope } = useStore();
   const [from, setFrom] = useState(addDays(today, -90));
   const [to, setTo] = useState(addDays(today, 0));
   const cname = (id) => state.clinics.find((c) => c.id === id)?.name || id;
   const r = useMemo(() => {
-    const inScope = (id) => clinic === 'all' || id === clinic;
+    const inScope = (id) => scope === 'all' || id === scope;
     const batches = state.batches.filter((b) => inScope(b.clinicId));
     const withP = batches.map((b) => ({ b, p: projection(b, today) }));
     const byStatus = ['Normal', 'Monitor', 'Warning', 'Critical', 'Expired'].map((s) => ({ name: s, units: withP.filter((x) => x.p.status === s).reduce((a, x) => a + x.b.qty, 0) }));
@@ -35,7 +34,7 @@ export default function Reports() {
       done, moved: done.reduce((s, t) => s + t.qty, 0), saved: done.reduce((s, t) => s + t.qty * t.unitCost, 0),
       shortages, byStatus, surplusData, movedData, withP,
     };
-  }, [state, today, clinic, from, to]);
+  }, [state, today, scope, from, to]);
 
   const exportBatches = () => downloadCSV('mediclock_batches.csv', [['Clinic', 'Medicine', 'Batch', 'Quantity', 'Unit', 'Expiry', 'Days left', 'Status', 'Daily use', 'Projected surplus (estimate)', 'Unit cost (illustrative INR)'],
     ...r.withP.map(({ b, p }) => [cname(b.clinicId), b.name, b.batchNo, b.qty, b.unit, b.expiry, p.days, p.status, b.daily, p.surplus, b.unitCost])]);
@@ -49,8 +48,7 @@ export default function Reports() {
         <div><h1 className="text-xl font-semibold text-navy-900">Reports and impact</h1><p className="text-sm text-slate-500">Expiry risk, shortages and redistribution results.</p></div>
         <div className="flex flex-wrap gap-2"><button className="btn-ghost" onClick={exportBatches}>Export batches CSV</button><button className="btn-ghost" onClick={exportTransfers}>Export transfers CSV</button><button className="btn-ghost" onClick={exportShort}>Export shortages CSV</button></div>
       </div>
-      <div className="card grid gap-2 p-3 sm:grid-cols-3">
-        <select className="input" value={clinic} onChange={(e) => setClinic(e.target.value)} aria-label="Clinic"><option value="all">All clinics</option>{state.clinics.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+      <div className="card grid gap-2 p-3 sm:grid-cols-2">
         <label className="flex items-center gap-2 text-xs text-slate-500">From<input className="input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
         <label className="flex items-center gap-2 text-xs text-slate-500">To<input className="input" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
       </div>

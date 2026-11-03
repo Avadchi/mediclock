@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from './store.jsx';
-import { Badge, Confirm } from './components/ui.jsx';
+import { Badge, Confirm, Logo, fmtLongDate } from './components/ui.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Inventory from './pages/Inventory.jsx';
 import SwapBoard from './pages/SwapBoard.jsx';
@@ -11,33 +11,28 @@ import Reports from './pages/Reports.jsx';
 import Admin from './pages/Admin.jsx';
 import Login from './pages/Login.jsx';
 
-const NAV = [
+const PRIMARY = [
+  { to: '/inventory', label: 'My shelf', step: 1 },
+  { to: '/swap', label: 'Swap board', step: 2 },
+  { label: 'Add stock', step: 3, action: 'add' },
+];
+
+const SECONDARY = [
   { to: '/', label: 'Dashboard', end: true },
-  { to: '/inventory', label: 'Inventory' },
-  { to: '/swap', label: 'Swap Board' },
   { to: '/transfers', label: 'Transfers' },
-  { to: '/map', label: 'Clinic Map' },
+  { to: '/map', label: 'Clinic map' },
   { to: '/reports', label: 'Reports' },
   { to: '/admin', label: 'Administration', roles: ['Administrator'] },
 ];
 
-export function Logo({ light }) {
-  return (
-    <div className="flex items-center gap-2">
-      <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill={light ? '#fff' : '#0b2545'} /><circle cx="16" cy="16" r="10" fill="none" stroke="#16a3a5" strokeWidth="2.5" /><path d="M16 9v7l4 3" stroke={light ? '#0b2545' : '#fff'} strokeWidth="2.5" fill="none" strokeLinecap="round" /></svg>
-      <span className={`text-lg font-semibold tracking-tight ${light ? 'text-white' : 'text-navy-900'}`}>MediClock</span>
-    </div>
-  );
-}
-
 function Notifications() {
-  const { alerts, state } = useStore();
+  const { alerts } = useStore();
   const [open, setOpen] = useState(false);
   const nav = useNavigate();
   const items = [...alerts.work, ...alerts.shortage.filter((a) => a.level === 'Critical'), ...alerts.expiry.filter((a) => ['Critical', 'Expired'].includes(a.level))];
   return (
     <div className="relative">
-      <button className="btn-ghost relative" onClick={() => setOpen(!open)} aria-label="Notifications" aria-expanded={open}>
+      <button className="btn-ghost !px-2.5" onClick={() => setOpen(!open)} aria-label="Notifications" aria-expanded={open}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 0 0 4 0" /></svg>
         {items.length > 0 && <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-red-600 px-1 text-center text-[11px] font-semibold text-white">{items.length}</span>}
       </button>
@@ -57,48 +52,71 @@ function Notifications() {
   );
 }
 
-function Shell({ children }) {
-  const { user, state, logout, reset, login } = useStore();
-  const nav = useNavigate();
-  const [drawer, setDrawer] = useState(false);
-  const [confirmReset, setConfirmReset] = useState(false);
-  const [q, setQ] = useState('');
-  const clinic = state.clinics.find((c) => c.id === user.clinicId);
-  const links = NAV.filter((n) => !n.roles || n.roles.includes(user.role));
-  const submit = (e) => { e.preventDefault(); nav('/inventory?q=' + encodeURIComponent(q)); setDrawer(false); };
-  const sidebar = (
-    <nav className="flex h-full flex-col bg-navy-900 p-4 text-sm text-navy-100">
-      <Logo light />
-      <p className="mt-1 text-xs text-navy-100/70">Smarter Inventory. Less Wastage. Better Access.</p>
-      <ul className="mt-6 space-y-1">
-        {links.map((n) => (
-          <li key={n.to}><NavLink to={n.to} end={n.end} onClick={() => setDrawer(false)} className={({ isActive }) => `block rounded-md px-3 py-2 ${isActive ? 'bg-teal-600 font-medium text-white' : 'hover:bg-navy-800'}`}>{n.label}</NavLink></li>
-        ))}
-      </ul>
-      <div className="mt-auto space-y-2 pt-6">
-        <button className="w-full rounded-md border border-navy-700 px-3 py-2 text-left hover:bg-navy-800" onClick={() => setConfirmReset(true)}>Reset demo data</button>
-        <button className="w-full rounded-md px-3 py-2 text-left hover:bg-navy-800" onClick={logout}>Switch role / sign out</button>
-      </div>
-    </nav>
-  );
+function DemoBanner({ today }) {
   return (
-    <div className="min-h-screen lg:pl-60">
-      <aside className="fixed inset-y-0 left-0 hidden w-60 lg:block">{sidebar}</aside>
-      {drawer && <div className="fixed inset-0 z-40 lg:hidden"><div className="absolute inset-0 bg-navy-950/50" onClick={() => setDrawer(false)} /><aside className="absolute inset-y-0 left-0 w-64">{sidebar}</aside></div>}
-      <header className="sticky top-0 z-30 flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-3 py-2 sm:px-6">
-        <button className="btn-ghost lg:hidden" onClick={() => setDrawer(true)} aria-label="Open menu">☰</button>
-        <form onSubmit={submit} className="min-w-[8rem] flex-1 sm:max-w-sm"><input className="input" placeholder="Search medicines, batches, clinics" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search" /></form>
-        <div className="ml-auto flex items-center gap-2">
-          <div className="hidden text-right text-xs leading-tight sm:block"><div className="font-semibold text-navy-900">{user.name}</div><div className="text-slate-500">{user.role} · {clinic ? clinic.name : 'All clinics'}</div></div>
-          <select className="input !w-auto max-w-[11rem]" aria-label="Switch demo user" value={user.id} onChange={(e) => login(e.target.value)}>
-            {state.users.map((u) => <option key={u.id} value={u.id}>{u.role === 'Pharmacist' ? `Pharmacist – ${u.name}` : `${u.role} – ${u.name}`}</option>)}
-          </select>
-          <Notifications />
+    <div className="rounded-md border border-[#f0c36d] bg-[#fff9e8] px-4 py-3 text-sm leading-relaxed text-[#6b4e00]">
+      <span className="font-semibold uppercase tracking-wide">Synthetic demo data.</span>{' '}
+      Clinics, medicines, quantities and prices are invented to show how the tools work. They are not real stock and not research results. Today in the demo: <span className="font-medium">{fmtLongDate(today)}</span>. Approvals are simulations, not legal authorisations.
+    </div>
+  );
+}
+
+function Shell({ children }) {
+  const { user, state, login, reset, scope, setScope, notify, today } = useStore();
+  const nav = useNavigate();
+  const loc = useLocation();
+  const [confirmReset, setConfirmReset] = useState(false);
+  const links = SECONDARY.filter((n) => !n.roles || n.roles.includes(user.role));
+  const addActive = loc.pathname === '/inventory' && new URLSearchParams(loc.search).has('add');
+  const addStock = () => {
+    if (user.role !== 'Pharmacist') { notify('Stock changes are made by clinic pharmacists.', 'error'); return; }
+    nav('/inventory?add=' + Date.now());
+  };
+  return (
+    <div className="min-h-screen">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
+            <div className="min-w-[15rem] flex-1">
+              <Logo />
+              <p className="mt-1 text-xs text-slate-500">Use the earliest-expiring stock first, and move spare stock to a nearby clinic before it expires.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <select className="input !w-auto max-w-[15rem]" value={scope} onChange={(e) => setScope(e.target.value)} aria-label="Dispensary">
+                <option value="all">All clinics</option>
+                {state.clinics.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <button className="btn-primary" onClick={() => setConfirmReset(true)}>Reset demo</button>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 pb-3">
+            <nav className="flex flex-wrap items-center gap-2" aria-label="Main">
+              {PRIMARY.map((n) => {
+                if (n.action && user.role !== 'Pharmacist') return null;
+                return n.action ? (
+                  <button key={n.label} onClick={addStock} className={`pill ${addActive ? 'pill-active' : ''}`}>{n.step} · {n.label}</button>
+                ) : (
+                  <NavLink key={n.to} to={n.to} className={({ isActive }) => `pill ${isActive && !addActive ? 'pill-active' : ''}`}>{n.step} · {n.label}</NavLink>
+                );
+              })}
+              <span className="mx-1 hidden h-5 w-px bg-slate-200 sm:block" aria-hidden="true" />
+              {links.map((n) => (
+                <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `px-1.5 text-xs font-medium transition-colors ${isActive ? 'text-navy-900' : 'text-slate-500 hover:text-navy-900'}`}>{n.label}</NavLink>
+              ))}
+            </nav>
+            <div className="ml-auto flex items-center gap-2">
+              <select className="input !w-auto max-w-[16rem]" aria-label="Switch demo user" value={user.id} onChange={(e) => login(e.target.value)}>
+                {state.users.map((u) => <option key={u.id} value={u.id}>{u.role === 'Pharmacist' ? `Pharmacist – ${u.name}` : `${u.role} – ${u.name}`}</option>)}
+              </select>
+              <Notifications />
+            </div>
+          </div>
         </div>
-        <div className="w-full text-xs text-slate-500 sm:hidden">{user.name} · {user.role} · {clinic ? clinic.name : 'All clinics'}</div>
       </header>
-      <div className="bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-900 sm:px-6">Demo mode: all data is fictional and approvals are simulations, not legal authorisations.</div>
-      <main className="mx-auto max-w-7xl p-3 sm:p-6">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-4">
+        <DemoBanner today={today} />
+        <div className="mt-4">{children}</div>
+      </main>
       {confirmReset && <Confirm title="Reset demo data?" message="This restores the original dataset and removes all changes, transfers and audit history." confirmLabel="Reset" danger onConfirm={reset} onClose={() => setConfirmReset(false)} />}
     </div>
   );

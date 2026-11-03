@@ -1,34 +1,48 @@
 import React, { useEffect } from 'react';
 
 const TONE = {
-  Normal: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  Monitor: 'bg-sky-50 text-sky-700 ring-sky-200',
-  Warning: 'bg-amber-50 text-amber-800 ring-amber-200',
-  Critical: 'bg-red-50 text-red-700 ring-red-200',
+  Normal: 'bg-[#e8f5ec] text-[#1e7b3c] ring-[#bfe5cc]',
+  Monitor: 'bg-[#fef3c7] text-[#92400e] ring-[#fcd34d]',
+  Warning: 'bg-[#fef3c7] text-[#92400e] ring-[#fcd34d]',
+  Critical: 'bg-[#fdeceb] text-[#b42318] ring-[#f5c2c0]',
   Expired: 'bg-red-600 text-white ring-red-700',
-  High: 'bg-red-50 text-red-700 ring-red-200',
-  Medium: 'bg-amber-50 text-amber-800 ring-amber-200',
-  Low: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  Suggested: 'bg-teal-50 text-teal-700 ring-teal-200',
-  Completed: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  Approved: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  Dispatched: 'bg-sky-50 text-sky-700 ring-sky-200',
-  Rejected: 'bg-red-50 text-red-700 ring-red-200',
+  'Use / move now': 'bg-[#fdeceb] text-[#b42318] ring-[#f5c2c0]',
+  Watch: 'bg-[#fef3c7] text-[#92400e] ring-[#fcd34d]',
+  OK: 'bg-[#e8f5ec] text-[#1e7b3c] ring-[#bfe5cc]',
+  High: 'bg-[#fdeceb] text-[#b42318] ring-[#f5c2c0]',
+  Medium: 'bg-[#fef3c7] text-[#92400e] ring-[#fcd34d]',
+  Low: 'bg-[#e8f5ec] text-[#1e7b3c] ring-[#bfe5cc]',
+  Suggested: 'bg-brand-50 text-brand-700 ring-[#cfe0f5]',
+  Completed: 'bg-[#e8f5ec] text-[#1e7b3c] ring-[#bfe5cc]',
+  Approved: 'bg-[#e8f5ec] text-[#1e7b3c] ring-[#bfe5cc]',
+  Dispatched: 'bg-brand-50 text-brand-700 ring-[#cfe0f5]',
+  Rejected: 'bg-[#fdeceb] text-[#b42318] ring-[#f5c2c0]',
   Cancelled: 'bg-slate-100 text-slate-600 ring-slate-200',
   Action: 'bg-navy-50 text-navy-800 ring-navy-100',
 };
 export function Badge({ children, tone }) {
-  const cls = TONE[tone || children] || 'bg-amber-50 text-amber-800 ring-amber-200';
+  const cls = TONE[tone || children] || 'bg-[#fef3c7] text-[#92400e] ring-[#fcd34d]';
   return <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${cls}`}>{children}</span>;
 }
 
-export function Stat({ label, value, sub, tone = 'navy' }) {
-  const c = { navy: 'text-navy-900', red: 'text-red-600', amber: 'text-amber-600', green: 'text-emerald-600', teal: 'text-teal-700' }[tone];
+export const shelfAlert = (status) => status === 'Expired' ? 'Expired' : status === 'Critical' ? 'Use / move now' : status === 'Warning' || status === 'Monitor' ? 'Watch' : 'OK';
+
+export function Logo() {
   return (
-    <div className="card p-4">
-      <div className="text-xs font-medium text-slate-500">{label}</div>
-      <div className={`mt-1 text-2xl font-semibold tabular-nums ${c}`}>{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-slate-500">{sub}</div>}
+    <span className="inline-flex items-baseline gap-1.5">
+      <span className="text-[22px] font-bold leading-none tracking-tight text-navy-900">Medi<span className="text-brand-600">Clock</span></span>
+      <span className="text-xs font-normal text-slate-500">· prototype v0.1</span>
+    </span>
+  );
+}
+
+export function Stat({ label, value, sub, tone = 'navy', highlight = false }) {
+  const c = { navy: 'text-navy-900', red: 'text-red-600', danger: 'text-[#b42318]', amber: 'text-amber-600', green: 'text-emerald-600', teal: 'text-brand-700' }[tone];
+  return (
+    <div className={`rounded-lg border p-4 ${highlight ? 'border-[#f0d9c0] bg-[#fdf3e8]' : 'border-slate-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]'}`}>
+      <div className={`text-2xl font-semibold leading-tight tabular-nums ${c}`}>{value}</div>
+      <div className="mt-1 text-xs leading-snug text-slate-500">{label}</div>
+      {sub && <div className="mt-0.5 text-xs text-slate-400">{sub}</div>}
     </div>
   );
 }
@@ -88,7 +102,8 @@ export const Field = ({ label, error, children, hint }) => (
   </label>
 );
 
-export const fmtDate = (iso) => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+export const fmtDate = (iso) => iso;
+export const fmtLongDate = (iso) => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
 export const fmtTime = (ts) => new Date(ts).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 export const inr = (n) => '₹' + Math.round(n).toLocaleString('en-IN');
 export const num = (n) => Math.round(n).toLocaleString('en-IN');

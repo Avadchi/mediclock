@@ -30,13 +30,13 @@ function RequestModal({ rec, onClose }) {
 }
 
 export default function SwapBoard() {
-  const { state, user, today, recs } = useStore();
-  const [f, setF] = useState({ clinic: 'all', med: 'all', urgency: 'all', status: 'all' });
+  const { state, user, today, recs, scope } = useStore();
+  const [f, setF] = useState({ med: 'all', urgency: 'all', status: 'all' });
   const [why, setWhy] = useState(null);
   const [req, setReq] = useState(null);
   const cname = (id) => state.clinics.find((c) => c.id === id)?.name || id;
   const meds = useMemo(() => [...new Map(state.batches.map((b) => [b.medicineId, b.name])).entries()], [state.batches]);
-  const list = recs.filter((r) => (f.clinic === 'all' || r.fromClinic === f.clinic || r.toClinic === f.clinic) && (f.med === 'all' || r.medicineId === f.med)
+  const list = recs.filter((r) => (scope === 'all' || r.fromClinic === scope || r.toClinic === scope) && (f.med === 'all' || r.medicineId === f.med)
     && (f.urgency === 'all' || r.urgency === f.urgency) && (f.status === 'all' || r.status === f.status));
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
@@ -48,7 +48,7 @@ export default function SwapBoard() {
     <div className="space-y-4">
       <div><h1 className="text-xl font-semibold text-navy-900">Smart Swap Board</h1><p className="text-sm text-slate-500">Matches projected surplus at one clinic with a shortage at another, before the stock expires. Rule-based, no AI.</p></div>
       {demo && (
-        <div className="card border-teal-600/40 bg-teal-50 p-4 text-sm">
+        <div className="card border-[#cfe0f5] bg-brand-50 p-4 text-sm">
           <div className="font-semibold text-navy-900">Headline scenario: ORS, Clinic A to Clinic B</div>
           <div className="mt-1 grid gap-1 text-slate-700 sm:grid-cols-2">
             <div>Clinic A: {demo.a.qty} sachets, {demo.a.daily}/day, {demo.p.days} days left. Expected use {demo.p.expected}, buffer {demo.a.buffer}. <b>Projected surplus: {demo.p.surplus}.</b></div>
@@ -56,8 +56,7 @@ export default function SwapBoard() {
           </div>
         </div>
       )}
-      <div className="card grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-4">
-        <select className="input" value={f.clinic} onChange={set('clinic')} aria-label="Clinic"><option value="all">All clinics</option>{state.clinics.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+      <div className="card grid gap-2 p-3 sm:grid-cols-3">
         <select className="input" value={f.med} onChange={set('med')} aria-label="Medicine"><option value="all">All medicines</option>{meds.map(([id, n]) => <option key={id} value={id}>{n}</option>)}</select>
         <select className="input" value={f.urgency} onChange={set('urgency')} aria-label="Urgency"><option value="all">All urgencies</option>{['High', 'Medium', 'Low'].map((u) => <option key={u}>{u}</option>)}</select>
         <select className="input" value={f.status} onChange={set('status')} aria-label="Status"><option value="all">All statuses</option>{['Suggested', 'Awaiting sending approval', 'Awaiting receiving approval', 'Awaiting medical officer approval', 'Approved', 'Dispatched'].map((u) => <option key={u}>{u}</option>)}</select>
@@ -78,7 +77,7 @@ export default function SwapBoard() {
                   <Row k="Projected surplus (estimate)" v={`${r.projectedSurplus} ${r.unit}`} />
                   <Row k="Available to transfer" v={`${r.available} ${r.unit}`} />
                   <Row k="Requested (shortage)" v={`${r.requested} ${r.unit}`} />
-                  <Row k="Recommended quantity" v={<span className="text-teal-700">{r.qty} {r.unit}</span>} />
+                  <Row k="Recommended quantity" v={<span className="text-brand-700">{r.qty} {r.unit}</span>} />
                   <Row k="Confirmed transferable" v={confirmed ? `${confirmed} ${r.unit}` : 'None until approved'} />
                   <Row k="Batch expiry" v={`${fmtDate(r.expiry)} (${r.days} d)`} />
                   <Row k="Distance" v={`${r.distanceKm} km`} />
