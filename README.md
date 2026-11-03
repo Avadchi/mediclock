@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # MediClock
 
 **Smarter Inventory. Less Wastage. Better Access.**
@@ -58,3 +59,7 @@ Pharmacist: edits own clinic's inventory, raises and approves transfers for own 
 ## Project layout
 
 `src/lib/logic.js` (all rules, pure and tested) · `src/lib/seed.js` (fictional data) · `src/store.jsx` (state and persistence) · `src/pages/*` (screens) · `tests/logic.test.mjs`.
+=======
+# mediclock
+Smart medicine inventory, expiry management, and inter-clinic surplus redistribution platform.
+>>>>>>> e37b14d946fb7d152c733d2948d31e8b522d60c2
